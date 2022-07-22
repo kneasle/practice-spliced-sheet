@@ -4,7 +4,7 @@ from itertools import groupby
 import re
 from openpyxl.styles.fonts import Font
 from openpyxl.workbook import Workbook
-from openpyxl.styles import Alignment
+from openpyxl.styles import Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from typing import Dict, Iterable, List, Tuple
 
@@ -293,6 +293,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     sheet["B4"].alignment = centre_text
     sheet.merge_cells("C4:D4")
     sheet["C4"] = "Calling (* for single, . for bob, all near calls)"
+    sheet["C4"].alignment = centre_text
     # music
     sheet.merge_cells("E3:E4")
     sheet.merge_cells("F3:F4")
@@ -370,10 +371,10 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     vertical_text_column_width = 3
     sheet.column_dimensions["B"].width = 6.5  # 'Length'
     sheet.column_dimensions["C"].width = (
-        max_len((t.call_string for t in touches)) * 1.2
+        max_len((t.call_string for t in touches)) * 1.3
     )  # 'Calling'
     sheet.column_dimensions["D"].width = (
-        max_len((t.calling_position_string for t in touches)) * 1.2
+        max_len((t.calling_position_string for t in touches)) * 1.3
     )
     sheet.column_dimensions["E"].width = 5  # 'Runs'
     sheet.column_dimensions["F"].width = vertical_text_column_width  # 'Queens'
@@ -384,6 +385,60 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     for method_idx in range(len(method_set.methods)):
         col_name = get_column_letter(9 + method_idx)
         sheet.column_dimensions[col_name].width = vertical_text_column_width
+
+    # === BORDERS ===
+    thick = Side(style="medium")
+    thin = Side(style="thin")
+    hair = Side(style="hair")
+    thick_box = Border(left=thick, right=thick, top=thick, bottom=thick)
+    # Top-left corner
+    sheet["B2"].border = thick_box
+    sheet["B3"].border = thick_box
+    sheet["B4"].border = thick_box
+    sheet["C4"].border = thick_box
+    sheet["E3"].border = Border(left=thick)  # Left of 'runs'
+    for col in range(5, 9):
+        sheet.cell(4, col).border = Border(bottom=thick)  # Line under music box
+    # Methods box
+    for method_idx in range(len(method_set.methods)):
+        col = 9 + method_idx
+        is_last_method = method_idx == len(method_set.methods) - 1
+        sheet.cell(2, col).border = Border(
+            left=thick if method_idx in method_set.lines or method_idx == 0 else None,
+            top=thick,
+            right=thick if is_last_method else None,
+        )
+        sheet.cell(4, col).border = Border(
+            left=thick,
+            right=thick if is_last_method else None,
+            top=thick,
+            bottom=thick,
+        )
+    # Touches
+    columns_with_left_border = [2, 3, 5, 9] + [9 + line for line in method_set.lines]
+    for touch_idx in range(len(touches)):
+        # Determine what line is required under this cell
+        if touch_idx == len(touches) - 1:
+            bottom = thick  # Thick border at the bottom of the box
+        elif touch_idx % 5 == 4:
+            bottom = thin  # Thin line every 5 rows
+        else:
+            bottom = hair
+        # Create the borders
+        row = 5 + touch_idx
+        final_col = 9 + len(method_set.methods) - 1
+        for col in range(2, final_col + 1):
+            if col in columns_with_left_border:
+                left = thick
+            elif col >= 9:
+                left = hair  # Thin lines within method box
+            else:
+                left = None
+            sheet.cell(row, col).border = Border(
+                left=left,
+                right=thick if col == final_col else None,
+                bottom=bottom,
+            )
 
     workbook.save(path)
 
