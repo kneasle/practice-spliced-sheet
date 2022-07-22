@@ -2,6 +2,7 @@
 
 from itertools import groupby
 import re
+from openpyxl.styles.fills import PatternFill
 from openpyxl.styles.fonts import Font
 from openpyxl.workbook import Workbook
 from openpyxl.styles import Alignment, Border, Side
@@ -20,15 +21,8 @@ def main():
     method_set = load_methods()
     touches = read_touches("touches", method_set)
     touches.sort(key=lambda touch: (touch.length, -touch.runs))
-
-    for t in touches:
-        print(
-            f"{t.length}: {t.call_string} ({t.calling_position_string}, {t.runs} runs)"
-        )
-    print(f"{len(touches)} touches")
-
-    # Save sheet
     write_spreadsheet(method_set, touches, "Lincoln.xlsx")
+    print(f"Written {len(touches)} touches")
 
 
 ###########
@@ -277,9 +271,14 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     top_row = 1
 
     # Set default font for all cells
-    for i in range(2, 9 + len(method_set.methods) + 1):
-        for row in range(2, 5 + len(touches) + 1):
-            sheet.cell(row, i).font = Font(name=font_family, size=font_size)
+    def set_col_font(col):
+        for row in range(3 + len(touches) + 1):
+            sheet.cell(top_row + row, col).font = Font(name=font_family, size=font_size)
+
+    for m_idx in range(len(method_set.methods)):
+        set_col_font(method_col + m_idx)
+    for i_idx in range(7):
+        set_col_font(info_col + i_idx)
 
     # === TOP-LEFT CORNER ===
     # title
@@ -382,8 +381,12 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         for meth_idx, shorthand in enumerate(method_set.methods):
             if shorthand in touch.method_counts:
                 cell = sheet.cell(row, method_col + meth_idx)
-                cell.value = touch.method_counts[shorthand]
-                cell.alignment = centre_text
+                if shorthand in touch.method_counts:
+                    cell.fill = PatternFill(patternType="solid", fgColor="FFAAAAAA")
+                    cell.font = Font(name="Fira Code", color="FFFFFFFF", size=font_size)
+                    if touch.method_counts[shorthand] > 1:
+                        cell.alignment = centre_text
+                        cell.value = touch.method_counts[shorthand]
 
     def get_col(idx):
         return sheet.column_dimensions[get_column_letter(info_col + idx)]
@@ -398,7 +401,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     for row in range(len(touches) + 1):
         get_row(3 + row).height = font_size * 1.4
     # Columns
-    vertical_text_column_width = 3
+    vertical_text_column_width = 2.7
     get_col(0).width = 6.5  # 'Length'
     get_col(1).width = max_len((t.call_string for t in touches)) * 1.3  # 'Calling'
     get_col(2).width = max_len((t.calling_position_string for t in touches)) * 1.3
