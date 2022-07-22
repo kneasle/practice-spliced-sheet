@@ -272,46 +272,67 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     font_family = "Times New Roman"
     font_size = 10
 
+    method_col = 1
+    info_col = 1 + len(method_set.methods)
+    top_row = 1
+
     # Set default font for all cells
-    for col in range(2, 9 + len(method_set.methods) + 1):
+    for i in range(2, 9 + len(method_set.methods) + 1):
         for row in range(2, 5 + len(touches) + 1):
-            sheet.cell(row, col).font = Font(name=font_family, size=font_size)
+            sheet.cell(row, i).font = Font(name=font_family, size=font_size)
 
     # === TOP-LEFT CORNER ===
     # title
-    sheet.merge_cells("B2:H2")
-    sheet["B2"] = "50 PPE Touches"
-    sheet["B2"].font = Font(name=font_family, size=font_size * 4, bold=True)
-    sheet["B2"].alignment = Alignment(horizontal="center", vertical="center")
+    sheet.merge_cells(
+        start_column=info_col + 0,
+        start_row=top_row + 0,
+        end_column=info_col + 6,
+        end_row=top_row + 0,
+    )
+    title_cell = sheet.cell(top_row + 0, info_col + 0)
+    title_cell.value = "50 PPE Touches"
+    title_cell.font = Font(name=font_family, size=font_size * 4, bold=True)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
     # made by me
-    sheet.merge_cells("B3:D3")
-    sheet["B3"] = "Compiled by Ben White-Horne"
-    sheet["B3"].font = Font(name=font_family, size=font_size * 1.6, bold=True)
-    sheet["B3"].alignment = Alignment(horizontal="center", vertical="center")
+    sheet.merge_cells(
+        start_column=info_col + 0,
+        start_row=top_row + 1,
+        end_column=info_col + 2,
+        end_row=top_row + 1,
+    )
+    made_by_me_cell = sheet.cell(top_row + 1, info_col + 0)
+    made_by_me_cell.value = "Compiled by Ben White-Horne"
+    made_by_me_cell.font = Font(name=font_family, size=font_size * 1.6, bold=True)
+    made_by_me_cell.alignment = Alignment(horizontal="center", vertical="center")
     # length/calling
-    sheet["B4"] = "Length"
-    sheet["B4"].alignment = centre_text
-    sheet.merge_cells("C4:D4")
-    sheet["C4"] = "Calling (* for single, . for bob, all near calls)"
-    sheet["C4"].alignment = centre_text
-    # music
-    sheet.merge_cells("E3:E4")
-    sheet.merge_cells("F3:F4")
-    sheet.merge_cells("G3:G4")
-    sheet["E3"].alignment = centre_text
-    sheet["E3"] = "Runs"
-    sheet["F3"].alignment = vertical_text
-    sheet["F3"] = "Queens"
-    sheet["G3"].alignment = vertical_text
-    sheet["G3"] = "Backrounds"
-    # notes
-    sheet.merge_cells("H3:H4")
-    sheet["H3"].alignment = centre_text
-    sheet["H3"] = "Notes"
+    length_cell = sheet.cell(top_row + 2, info_col + 0)
+    length_cell.value = "Length"
+    length_cell.alignment = centre_text
+    sheet.merge_cells(
+        start_column=info_col + 1,
+        start_row=top_row + 2,
+        end_column=info_col + 2,
+        end_row=top_row + 2,
+    )
+    calling_cell = sheet.cell(top_row + 2, info_col + 1)
+    calling_cell.value = "Calling (* for single, . for bob, all near calls)"
+    calling_cell.alignment = centre_text
+    # music/notes
+    for idx in range(4):
+        col = info_col + 3 + idx
+        sheet.merge_cells(
+            start_column=col,
+            start_row=top_row + 1,
+            end_column=col,
+            end_row=top_row + 2,
+        )
+        cell = sheet.cell(top_row + 1, col)
+        cell.alignment = [centre_text, vertical_text, vertical_text, centre_text][idx]
+        cell.value = ["Runs", "Queens", "Backrounds", "Notes"][idx]
 
     # === METHODS ===
     for idx, shorthand in enumerate(method_set.methods):
-        column = 9 + idx
+        column = method_col + idx
         method = method_set.methods[shorthand]
         # Determine the name
         name = method.name
@@ -319,14 +340,17 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
             name += f" ({shorthand})"
         # Set the cell
         sheet.merge_cells(
-            start_column=column, start_row=2, end_column=column, end_row=3
+            start_column=column,
+            start_row=top_row,
+            end_column=column,
+            end_row=top_row + 1,
         )
-        cell = sheet.cell(column=column, row=2)
+        cell = sheet.cell(column=column, row=top_row)
         cell.value = name
         cell.alignment = vertical_text
     # Groups
-    start_col = 9
-    groups_row = 4
+    start_col = method_col
+    groups_row = top_row + 2
     for name, width in method_set.groups:
         sheet.merge_cells(
             start_column=start_col,
@@ -341,102 +365,118 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
 
     # === TOUCHES ===
     for idx, touch in enumerate(touches):
-        row = 5 + idx
+        row = top_row + 3 + idx
         # Touch info
-        for col in [2, 4, 5]:
-            sheet.cell(row, col).alignment = centre_text
-        for col in [3, 4]:
-            sheet.cell(row, col).font = Font(name="Fira Code", size=font_size)
-        sheet.cell(row, 2).value = touch.length
-        sheet.cell(row, 3).value = touch.call_string
-        sheet.cell(row, 4).value = touch.calling_position_string
-        sheet.cell(row, 5).value = touch.runs
+        for i in [0, 2, 3]:
+            sheet.cell(row, info_col + i).alignment = centre_text
+        for i in [1, 2]:
+            sheet.cell(row, info_col + i).font = Font(name="Fira Code", size=font_size)
+        sheet.cell(row, info_col + 0).value = touch.length
+        sheet.cell(row, info_col + 1).value = touch.call_string
+        sheet.cell(row, info_col + 2).value = touch.calling_position_string
+        sheet.cell(row, info_col + 3).value = touch.runs
         # 6 is Queens
         # 7 is Backrounds
-        sheet.cell(row, 8).value = touch.notes
+        sheet.cell(row, info_col + 6).value = touch.notes
         # Method matrix
         for meth_idx, shorthand in enumerate(method_set.methods):
             if shorthand in touch.method_counts:
-                cell = sheet.cell(row, 9 + meth_idx)
+                cell = sheet.cell(row, method_col + meth_idx)
                 cell.value = touch.method_counts[shorthand]
                 cell.alignment = centre_text
 
+    def get_col(idx):
+        return sheet.column_dimensions[get_column_letter(info_col + idx)]
+
+    def get_row(idx):
+        return sheet.row_dimensions[top_row + idx]
+
     # === ROW/COLUMN SIZES ===
     # Rows
-    sheet.row_dimensions[2].height = font_size * 6  # Title
-    sheet.row_dimensions[3].height = font_size * 4.5  # 'made by me'
-    for row in range(4, len(touches) + 5 + 1):
-        sheet.row_dimensions[row].height = font_size * 1.4
+    get_row(0).height = font_size * 6  # Title
+    get_row(1).height = font_size * 4.5  # 'made by me'
+    for row in range(len(touches) + 1):
+        get_row(3 + row).height = font_size * 1.4
     # Columns
     vertical_text_column_width = 3
-    sheet.column_dimensions["B"].width = 6.5  # 'Length'
-    sheet.column_dimensions["C"].width = (
-        max_len((t.call_string for t in touches)) * 1.3
-    )  # 'Calling'
-    sheet.column_dimensions["D"].width = (
-        max_len((t.calling_position_string for t in touches)) * 1.3
-    )
-    sheet.column_dimensions["E"].width = 5  # 'Runs'
-    sheet.column_dimensions["F"].width = vertical_text_column_width  # 'Queens'
-    sheet.column_dimensions["G"].width = vertical_text_column_width  # 'Backrounds'
-    sheet.column_dimensions["H"].width = (
-        max((len(t.notes or "") for t in touches)) * 0.9
-    )  # 'Notes'
+    get_col(0).width = 6.5  # 'Length'
+    get_col(1).width = max_len((t.call_string for t in touches)) * 1.3  # 'Calling'
+    get_col(2).width = max_len((t.calling_position_string for t in touches)) * 1.3
+    get_col(3).width = 5  # 'Runs'
+    get_col(4).width = vertical_text_column_width  # 'Queens'
+    get_col(5).width = vertical_text_column_width  # 'Backrounds'
+    get_col(6).width = max((len(t.notes or "") for t in touches)) * 0.9  # 'Notes'
     for method_idx in range(len(method_set.methods)):
-        col_name = get_column_letter(9 + method_idx)
+        col_name = get_column_letter(method_col + method_idx)
         sheet.column_dimensions[col_name].width = vertical_text_column_width
 
     # === BORDERS ===
-    thick = Side(style="medium")
-    thin = Side(style="thin")
-    hair = Side(style="hair")
-    thick_box = Border(left=thick, right=thick, top=thick, bottom=thick)
+    THICK = Side(style="medium")
+    NORMAL = Side(style="thin")
+    THIN = Side(style="hair")
+    thick_box = Border(left=THICK, right=THICK, top=THICK, bottom=THICK)
+    # Line under music box
+    for i in range(3, 7):
+        sheet.cell(top_row + 2, info_col + i).border = Border(bottom=THICK)
     # Top-left corner
-    sheet["B2"].border = thick_box
-    sheet["B3"].border = thick_box
-    sheet["B4"].border = thick_box
-    sheet["C4"].border = thick_box
-    sheet["E3"].border = Border(left=thick)  # Left of 'runs'
-    for col in range(5, 9):
-        sheet.cell(4, col).border = Border(bottom=thick)  # Line under music box
+    sheet.cell(top_row + 0, info_col + 0).border = thick_box
+    sheet.cell(top_row + 1, info_col + 0).border = thick_box
+    sheet.cell(top_row + 2, info_col + 0).border = thick_box
+    sheet.cell(top_row + 2, info_col + 1).border = thick_box
+    sheet.cell(top_row + 1, info_col + 3).border = Border(left=THICK, bottom=THICK)
+    sheet.cell(top_row + 0, info_col + 6).border = Border(right=THICK)
+    sheet.cell(top_row + 1, info_col + 6).border = Border(right=THICK, bottom=THICK)
     # Methods box
     for method_idx in range(len(method_set.methods)):
-        col = 9 + method_idx
-        is_last_method = method_idx == len(method_set.methods) - 1
-        sheet.cell(2, col).border = Border(
-            left=thick if method_idx in method_set.lines or method_idx == 0 else None,
-            top=thick,
-            right=thick if is_last_method else None,
+        i = method_col + method_idx
+        if method_idx == 0:
+            left = THICK
+        elif method_idx in method_set.lines:
+            left = NORMAL
+        else:
+            left = None
+        right = THICK if method_idx == len(method_set.methods) - 1 else None
+        # Set the borders
+        sheet.cell(top_row, i).border = Border(
+            left=left,
+            top=THICK,
+            right=right,
         )
-        sheet.cell(4, col).border = Border(
-            left=thick,
-            right=thick if is_last_method else None,
-            top=thick,
-            bottom=thick,
+        sheet.cell(top_row + 2, i).border = Border(
+            left=left,
+            right=right,
+            top=THICK,
+            bottom=THICK,
         )
     # Touches
-    columns_with_left_border = [2, 3, 5, 9] + [9 + line for line in method_set.lines]
     for touch_idx in range(len(touches)):
+        row = top_row + 3 + touch_idx
         # Determine what line is required under this cell
         if touch_idx == len(touches) - 1:
-            bottom = thick  # Thick border at the bottom of the box
+            bottom = THICK  # Thick border at the bottom of the box
         elif touch_idx % 5 == 4:
-            bottom = thin  # Thin line every 5 rows
+            bottom = NORMAL  # Thin line every 5 rows
         else:
-            bottom = hair
-        # Create the borders
-        row = 5 + touch_idx
-        final_col = 9 + len(method_set.methods) - 1
-        for col in range(2, final_col + 1):
-            if col in columns_with_left_border:
-                left = thick
-            elif col >= 9:
-                left = hair  # Thin lines within method box
+            bottom = THIN
+        # Info box
+        for i in range(0, 7):
+            sheet.cell(row, info_col + i).border = Border(
+                left=THICK if i in [0, 1, 3] else None,
+                right=THICK if i == 6 else None,
+                bottom=bottom,
+            )
+        # Methods
+        final_col = len(method_set.methods) - 1
+        for i in range(0, len(method_set.methods)):
+            if i == 0:
+                left = THICK
+            elif i in method_set.lines:
+                left = NORMAL
             else:
-                left = None
-            sheet.cell(row, col).border = Border(
+                left = THIN
+            sheet.cell(row, method_col + i).border = Border(
                 left=left,
-                right=thick if col == final_col else None,
+                right=THICK if i == final_col else None,
                 bottom=bottom,
             )
 
