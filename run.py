@@ -17,16 +17,18 @@ ROUNDS = BELL_NAMES[:STAGE]
 
 
 def main():
-    methods = load_methods()
-    touches = read_touches("touches", methods)
-    touches.sort(key = lambda touch: (touch.length, -touch.runs))
+    method_set = load_methods()
+    touches = read_touches("touches", method_set)
+    touches.sort(key=lambda touch: (touch.length, -touch.runs))
 
     for t in touches:
-        print(f"{t.length}: {t.call_string} ({t.calling_position_string}, {t.runs} runs)")
+        print(
+            f"{t.length}: {t.call_string} ({t.calling_position_string}, {t.runs} runs)"
+        )
     print(f"{len(touches)} touches")
 
     # Save sheet
-    write_spreadsheet(methods, touches, "Lincoln.xlsx")
+    write_spreadsheet(method_set, touches, "Lincoln.xlsx")
 
 
 ###########
@@ -34,27 +36,45 @@ def main():
 ###########
 
 
-def load_methods() -> Dict[str, "Method"]:
-    return {
-        # Core 7
-        "C": Method("Cambridge", "-38-14-1258-36-14-58-16-78,12"),
-        "Y": Method("Yorkshire", "-38-14-58-16-12-38-14-78,12"),
-        "S": Method("Superlative", "-36-14-58-36-14-58-36-78,12"),
-        "B": Method("Bristol", "-58-14.58-58.36.14-14.58-14-18,18"),
-        "E": Method("Lessness", "-38-14-56-16-12-58-14-58,12"),
-        "W": Method("Cornwall", "-56-14-56-38-14-58-14-58,18"),
-        "L": Method("London", "38-38.14-12-38.14-14.58.16-16.58,12"),
-        # Lincoln 11
-        "N": Method("Double Norwich", "-14-36-58-18,18"),
-        "V": Method("Deva", "-58-14.58-58.36-14-58-36-18,18"),
-        "A": Method("Lancashire", "58-58.14-58-36-14-58.14-14.78,12"),
-        "T": Method("Ytterbium", "-38-14-1256-16-12-58.16-12.78,12"),
-        # Lincoln 15
-        "D": Method("Double Coslany", "-14.58.36.14.58-18,18"),
-        "M": Method("Mareham", "-58-14.58-12.38-12-18.36.12-18,18"),
-        "G": Method("Glasgow", "36-56.14.58-58.36-14-38.16-16.38,18"),
-        "R": Method("Carolina Reaper", "38-38.18-56-18-34-18.16-16.78,12"),
-    }
+def load_methods() -> "MethodSet":
+    return MethodSet(
+        {
+            # Core 7
+            "C": Method("Cambridge", "-38-14-1258-36-14-58-16-78,12"),
+            "Y": Method("Yorkshire", "-38-14-58-16-12-38-14-78,12"),
+            "S": Method("Superlative", "-36-14-58-36-14-58-36-78,12"),
+            "B": Method("Bristol", "-58-14.58-58.36.14-14.58-14-18,18"),
+            "E": Method("Lessness", "-38-14-56-16-12-58-14-58,12"),
+            "W": Method("Cornwall", "-56-14-56-38-14-58-14-58,18"),
+            "L": Method("London", "38-38.14-12-38.14-14.58.16-16.58,12"),
+            # Lincoln 11
+            "N": Method("Double Norwich", "-14-36-58-18,18"),
+            "V": Method("Deva", "-58-14.58-58.36-14-58-36-18,18"),
+            "A": Method("Lancashire", "58-58.14-58-36-14-58.14-14.78,12"),
+            "T": Method("Ytterbium", "-38-14-1256-16-12-58.16-12.78,12"),
+            # Lincoln 15
+            "D": Method("Double Coslany", "-14.58.36.14.58-18,18"),
+            "M": Method("Mareham", "-58-14.58-12.38-12-18.36.12-18,18"),
+            "G": Method("Glasgow", "36-56.14.58-58.36-14-38.16-16.38,18"),
+            # "R": Method("Carolina Reaper", "38-38.18-56-18-34-18.16-16.78,12"),
+        },
+        groups=[("Core 7", 7), ("Friends", 7)],
+        lines=[7, 11],
+    )
+
+
+class MethodSet:
+    """A set of methods, including information about grouping and dividing lines"""
+
+    def __init__(
+        self,
+        methods: Dict[str, "Method"],
+        groups: List[Tuple[str, int]],
+        lines: List[int],
+    ) -> None:
+        self.methods = methods
+        self.groups = groups
+        self.lines = lines
 
 
 class Method:
@@ -85,7 +105,7 @@ class Method:
 ###################
 
 
-def read_touches(path: str, methods: Dict[str, Method]) -> List["Touch"]:
+def read_touches(path: str, method_set: MethodSet) -> List["Touch"]:
     # I could do many things to make this regex more readable: like, for example, not using a regex.
     # Instead I will leave understanding this regex as a challenge for the reader.
     line_split_regex = re.compile(
@@ -99,20 +119,22 @@ def read_touches(path: str, methods: Dict[str, Method]) -> List["Touch"]:
 
         re_match = line_split_regex.match(line)
         if re_match is None:
-            print(f"Can't parse line {line.__repr__()}");
+            print(f"Can't parse line {line.__repr__()}")
             exit(1)
 
         length = int(re_match.group("length"))
         call_string = re_match.group("calling")
         notes = re_match.group("notes")
 
-        touches.append(Touch(length, call_string, notes, methods))
+        touches.append(Touch(length, call_string, notes, method_set.methods))
 
     return touches
 
 
 class Touch:
-    def __init__(self, length: int, call_string: str, notes: str, methods: Dict[str, Method]) -> None:
+    def __init__(
+        self, length: int, call_string: str, notes: str, methods: Dict[str, Method]
+    ) -> None:
         self.length = length
         self.call_string = call_string
         self.notes = notes
@@ -141,8 +163,12 @@ class Touch:
                 f"{self.call_string} is given len {self.length} but has {len(rows)} rows"
             )
         # Count runs
-        run_regex_front = re.compile("^(1234|2345|3456|4567|5678|4321|5432|6543|7654|8765).*$")
-        run_regex_back  = re.compile("^.*(1234|2345|3456|4567|5678|4321|5432|6543|7654|8765)$")
+        run_regex_front = re.compile(
+            "^(1234|2345|3456|4567|5678|4321|5432|6543|7654|8765).*$"
+        )
+        run_regex_back = re.compile(
+            "^.*(1234|2345|3456|4567|5678|4321|5432|6543|7654|8765)$"
+        )
         self.runs = 0
         for row in rows:
             if run_regex_front.match(row):
@@ -155,7 +181,7 @@ class Touch:
         for position, calls in groupby(calls, lambda call_pos: call_pos[1]):
             calls = [call for call, _ in calls]
             # Add the calls as efficiently as possible
-            if all((call == '-' for call in calls)):
+            if all((call == "-" for call in calls)):
                 # If all bobs, add nothing for one bob and a number for more than one
                 if len(calls) > 1:
                     self.calling_position_string += str(len(calls))
@@ -166,10 +192,9 @@ class Touch:
             # Always add the position
             self.calling_position_string += position
 
+
 def gen_rows_and_calls(
-    call_string: str,
-    leads,
-    methods: Dict[str, Method]
+    call_string: str, leads, methods: Dict[str, Method]
 ) -> Tuple[List[str], List[Tuple[str, str]]]:
     calls = []
     rows = []
@@ -204,7 +229,6 @@ def gen_rows_and_calls(
     return (rows, calls)
 
 
-
 def calling_pos_at(row: str, is_single: bool = False) -> str:
     calling_positions = "LBTFVMWH" if is_single else "LIBFVMWH"
     return calling_positions[row.index(TENOR)]
@@ -215,7 +239,7 @@ def calling_pos_at(row: str, is_single: bool = False) -> str:
 #######################
 
 
-def write_spreadsheet(methods: Dict[str, Method], touches: List[Touch], path: str):
+def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     # Header looks like:
     #       A/1    B/2    C/3   D/4    E/5     F/6      G/7     H/8        >=I/9
     #     +----+--------+-----+-----+------+--------+--------+-------+---------------
@@ -249,7 +273,7 @@ def write_spreadsheet(methods: Dict[str, Method], touches: List[Touch], path: st
     font_size = 10
 
     # Set default font for all cells
-    for col in range(2, 9 + len(methods) + 1):
+    for col in range(2, 9 + len(method_set.methods) + 1):
         for row in range(2, 5 + len(touches) + 1):
             sheet.cell(row, col).font = Font(name=font_family, size=font_size)
 
@@ -285,18 +309,34 @@ def write_spreadsheet(methods: Dict[str, Method], touches: List[Touch], path: st
     sheet["H3"] = "Notes"
 
     # === METHODS ===
-    for idx, shorthand in enumerate(methods):
+    for idx, shorthand in enumerate(method_set.methods):
         column = 9 + idx
-        method = methods[shorthand]
+        method = method_set.methods[shorthand]
         # Determine the name
         name = method.name
         if not method.name.startswith(shorthand):
             name += f" ({shorthand})"
         # Set the cell
-        sheet.merge_cells(start_column=column, start_row=2, end_column=column, end_row=3)
-        cell = sheet.cell(column = column, row = 2)
+        sheet.merge_cells(
+            start_column=column, start_row=2, end_column=column, end_row=3
+        )
+        cell = sheet.cell(column=column, row=2)
         cell.value = name
         cell.alignment = vertical_text
+    # Groups
+    start_col = 9
+    groups_row = 4
+    for name, width in method_set.groups:
+        sheet.merge_cells(
+            start_column=start_col,
+            start_row=groups_row,
+            end_column=start_col + width - 1,
+            end_row=groups_row,
+        )
+        cell = sheet.cell(groups_row, start_col)
+        cell.value = name
+        cell.alignment = centre_text
+        start_col += width
 
     # === TOUCHES ===
     for idx, touch in enumerate(touches):
@@ -314,7 +354,7 @@ def write_spreadsheet(methods: Dict[str, Method], touches: List[Touch], path: st
         # 7 is Backrounds
         sheet.cell(row, 8).value = touch.notes
         # Method matrix
-        for meth_idx, shorthand in enumerate(methods):
+        for meth_idx, shorthand in enumerate(method_set.methods):
             if shorthand in touch.method_counts:
                 cell = sheet.cell(row, 9 + meth_idx)
                 cell.value = touch.method_counts[shorthand]
@@ -322,20 +362,26 @@ def write_spreadsheet(methods: Dict[str, Method], touches: List[Touch], path: st
 
     # === ROW/COLUMN SIZES ===
     # Rows
-    sheet.row_dimensions[2].height = font_size * 6 # Title
-    sheet.row_dimensions[3].height = font_size * 4.5 # 'made by me'
+    sheet.row_dimensions[2].height = font_size * 6  # Title
+    sheet.row_dimensions[3].height = font_size * 4.5  # 'made by me'
     for row in range(4, len(touches) + 5 + 1):
         sheet.row_dimensions[row].height = font_size * 1.4
     # Columns
     vertical_text_column_width = 3
-    sheet.column_dimensions["B"].width = 6.5 # 'Length'
-    sheet.column_dimensions["C"].width = max_len((t.call_string for t in touches)) * 1.2 # 'Calling'
-    sheet.column_dimensions["D"].width = max_len((t.calling_position_string for t in touches)) * 1.2
-    sheet.column_dimensions["E"].width = 5 # 'Runs'
-    sheet.column_dimensions["F"].width = vertical_text_column_width # 'Queens'
-    sheet.column_dimensions["G"].width = vertical_text_column_width # 'Backrounds'
-    sheet.column_dimensions["H"].width = max((len(t.notes or "") for t in touches)) * 0.9 # 'Notes'
-    for method_idx in range(len(methods)):
+    sheet.column_dimensions["B"].width = 6.5  # 'Length'
+    sheet.column_dimensions["C"].width = (
+        max_len((t.call_string for t in touches)) * 1.2
+    )  # 'Calling'
+    sheet.column_dimensions["D"].width = (
+        max_len((t.calling_position_string for t in touches)) * 1.2
+    )
+    sheet.column_dimensions["E"].width = 5  # 'Runs'
+    sheet.column_dimensions["F"].width = vertical_text_column_width  # 'Queens'
+    sheet.column_dimensions["G"].width = vertical_text_column_width  # 'Backrounds'
+    sheet.column_dimensions["H"].width = (
+        max((len(t.notes or "") for t in touches)) * 0.9
+    )  # 'Notes'
+    for method_idx in range(len(method_set.methods)):
         col_name = get_column_letter(9 + method_idx)
         sheet.column_dimensions[col_name].width = vertical_text_column_width
 
@@ -345,6 +391,7 @@ def write_spreadsheet(methods: Dict[str, Method], touches: List[Touch], path: st
 def max_len(strings: Iterable[str]) -> int:
     """Returns the maximum length of an `Iterable` of strings"""
     return max((len(s or "") for s in strings))
+
 
 #######################
 # PLACE NOTATION CODE #
