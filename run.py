@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from itertools import groupby
 import re
 from openpyxl.styles.fonts import Font
 from openpyxl.workbook import Workbook
@@ -132,7 +133,8 @@ class Touch:
                 self.method_counts[shorthand] = 1
 
         # Convert the lead sequence into a sequence of rows and a calling string
-        rows, self.calling_position_string = Touch.gen_rows_and_calling(call_string, leads, methods)
+        rows, calls = gen_rows_and_calls(call_string, leads, methods)
+
         # Check that the given length was correct
         if self.length != len(rows):
             raise ValueError(
@@ -148,42 +150,58 @@ class Touch:
             if run_regex_back.match(row):
                 self.runs += 1
 
-        # TODO: Replace e.g. 'HHH' with '3H' in the call string
-
-    @classmethod
-    def gen_rows_and_calling(cls, call_string: str, leads, methods: Dict[str, Method]) -> Tuple[List[str], str]:
-        calling_position_string = ""
-        rows = []
-        lead_head = ROUNDS
-        for method_shorthand, call_shorthand in leads:
-            method = methods[method_shorthand]
-            # Add the rows for this lead
-            rows += [transpose_row_by_row(lead_head, row) for row in method.lead_rows]
-            # Decide which lead head to go to
-            if call_shorthand is None:
-                lead_head = transpose_row_by_row(lead_head, method.lead_head_plain)
-            elif call_shorthand == ".":
-                lead_head = transpose_row_by_row(lead_head, method.lead_head_bob)
-                calling_position_string += calling_pos_at(lead_head, is_single=False)
-            elif call_shorthand == "*":
-                lead_head = transpose_row_by_row(lead_head, method.lead_head_single)
-                calling_position_string += "s"
-                calling_position_string += calling_pos_at(lead_head, is_single=True)
+        # Generate calling position string
+        self.calling_position_string = ""
+        for position, calls in groupby(calls, lambda call_pos: call_pos[1]):
+            calls = [call for call, _ in calls]
+            # Add the calls as efficiently as possible
+            if all((call == '-' for call in calls)):
+                # If all bobs, add nothing for one bob and a number for more than one
+                if len(calls) > 1:
+                    self.calling_position_string += str(len(calls))
             else:
-                raise ValueError(f"Invalid call {call_shorthand}")
-        # Check for early rounds
-        try:
-            # Rounds always appears at the start, but snap finishes will make rounds appear again
-            rounds_index = rows.index(ROUNDS, 1)
-            # Trim anything from rounds onwards
-            rows = rows[:rounds_index]
-        except ValueError:
-            # Rounds doesn't appear early, so check that the comp comes round
-            if lead_head != ROUNDS:
-                print(f"{call_string} doesn't come round")
-                assert False
+                # If not all bobs, then just squash all the calls together
+                for call in calls:
+                    self.calling_position_string += call
+            # Always add the position
+            self.calling_position_string += position
 
-        return (rows, calling_position_string)
+def gen_rows_and_calls(
+    call_string: str,
+    leads,
+    methods: Dict[str, Method]
+) -> Tuple[List[str], List[Tuple[str, str]]]:
+    calls = []
+    rows = []
+    lead_head = ROUNDS
+    for method_shorthand, call_shorthand in leads:
+        method = methods[method_shorthand]
+        # Add the rows for this lead
+        rows += [transpose_row_by_row(lead_head, row) for row in method.lead_rows]
+        # Decide which lead head to go to
+        if call_shorthand is None:
+            lead_head = transpose_row_by_row(lead_head, method.lead_head_plain)
+        elif call_shorthand == ".":
+            lead_head = transpose_row_by_row(lead_head, method.lead_head_bob)
+            calls.append(("-", calling_pos_at(lead_head, is_single=False)))
+        elif call_shorthand == "*":
+            lead_head = transpose_row_by_row(lead_head, method.lead_head_single)
+            calls.append(("s", calling_pos_at(lead_head, is_single=True)))
+        else:
+            raise ValueError(f"Invalid call {call_shorthand}")
+    # Check for early rounds
+    try:
+        # Rounds always appears at the start, but snap finishes will make rounds appear again
+        rounds_index = rows.index(ROUNDS, 1)
+        # Trim anything from rounds onwards
+        rows = rows[:rounds_index]
+    except ValueError:
+        # Rounds doesn't appear early, so check that the comp comes round
+        if lead_head != ROUNDS:
+            print(f"{call_string} doesn't come round")
+            assert False
+
+    return (rows, calls)
 
 
 
