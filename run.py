@@ -260,10 +260,11 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     workbook = Workbook()
     sheet = workbook.active
 
-    vertical_text = Alignment(text_rotation=90, horizontal="center")
-    centre_text = Alignment(horizontal="center")
+    vertical_text = Alignment(text_rotation=90, horizontal="right")
+    centre_text = Alignment(horizontal="center", vertical="top")
+    left_text = Alignment(horizontal="left", vertical="top")
 
-    FONT_FAMILY = "Times New Roman"
+    FONT_FAMILY = "EB Garamond"
     FONT_SIZE = 10
 
     method_col = 1
@@ -275,6 +276,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     notes_col = info_col + 1
     calling_col = info_col + 2
     runs_col = info_col + 4
+    all_info_cols = [length_col, notes_col, calling_col, calling_col + 1, runs_col]
 
     # Set default font for all cells
     def set_col_font(col):
@@ -332,7 +334,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         column = method_col + idx
         method = method_set.methods[shorthand]
         # Determine the name
-        name = method.name
+        name = " " + method.name
         if not method.name.startswith(shorthand):
             name += f" ({shorthand})"
         # Set the cell
@@ -363,9 +365,12 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     # === TOUCHES ===
     for idx, touch in enumerate(touches):
         row = top_row + 3 + idx
+        # Alignment (only the `calling` column is left-aligned)
+        for col in all_info_cols:
+            sheet.cell(row, col).alignment = (
+                left_text if col == calling_col else centre_text
+            )
         # Touch info
-        for col in [length_col, calling_col + 1, runs_col]:
-            sheet.cell(row, col).alignment = centre_text
         for col in [calling_col, calling_col + 1]:
             sheet.cell(row, col).font = Font(name="Fira Code", size=FONT_SIZE)
         sheet.cell(row, length_col).value = touch.length
@@ -400,7 +405,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     vertical_text_column_width = 2.7
     get_col(length_col).width = 6.5
     get_col(runs_col).width = 5
-    get_col(notes_col).width = max((len(t.notes or "") for t in touches)) * 0.9
+    get_col(notes_col).width = max((len(t.notes or "") for t in touches)) * 0.95
     get_col(calling_col).width = max_len((t.call_string for t in touches)) * 1.3
     get_col(calling_col + 1).width = (
         max_len((t.calling_position_string for t in touches)) * 1.3
