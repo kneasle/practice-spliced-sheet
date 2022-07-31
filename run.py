@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from itertools import groupby
+import sys
 import re
 from openpyxl.styles.fills import PatternFill
 from openpyxl.styles.fonts import Font
@@ -24,7 +25,7 @@ ROUNDS = BELL_NAMES[:STAGE]
 
 def main():
     method_set = load_methods()
-    touches = read_touches("touches", method_set)
+    touches = read_touches(sys.argv[1], method_set)
     touches.sort(key=lambda touch: (touch.length, -touch.runs))
     write_spreadsheet(method_set, touches, "Lincoln.xlsx")
     print(f"Written {len(touches)} touches")
