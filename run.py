@@ -257,11 +257,14 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     sheet = workbook.active
 
     vertical_text = Alignment(text_rotation=90, horizontal="right")
-    centre_text = Alignment(horizontal="center", vertical="top")
     left_text = Alignment(horizontal="left", vertical="top")
+    centre_text = Alignment(horizontal="center", vertical="top")
+    right_text = Alignment(horizontal="right", vertical="top")
 
     FONT_FAMILY = "EB Garamond"
     FONT_SIZE = 10
+    MATRIX_CELL_FILL = "FFCCCCCC"
+    THIN_BORDER_COLOUR = "FF999999"
 
     method_col = 1
     info_col = 1 + len(method_set.methods)
@@ -322,7 +325,10 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     ]
     for col, label in headers:
         cell = sheet.cell(top_row + 2, col)
-        cell.alignment = centre_text
+        # 'Runs' and 'Length' look better right-aligned.  It seems that Google Sheets' text width
+        # calculation isn't quite accurate, and for short words it's obvious that the text ends up
+        # not exactly in the middle of the cell.
+        cell.alignment = right_text if col in [length_col, runs_col] else centre_text
         cell.value = label
 
     # === METHODS ===
@@ -372,13 +378,13 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         sheet.cell(row, calling_col + 1).value = touch.calling_position_string
         sheet.cell(row, runs_col).value = touch.runs
         sheet.cell(row, notes_col).value = touch.notes
-        # Method matrix
+        # Method Matrix
         for meth_idx, shorthand in enumerate(method_set.methods):
             if shorthand in touch.method_counts:
                 cell = sheet.cell(row, method_col + meth_idx)
                 if shorthand in touch.method_counts:
-                    cell.fill = PatternFill(patternType="solid", fgColor="FFAAAAAA")
-                    cell.font = Font(name="Fira Code", color="FFFFFFFF", size=FONT_SIZE)
+                    cell.fill = PatternFill(patternType="solid", fgColor=MATRIX_CELL_FILL)
+                    cell.font = Font(name="Fira Code", size=FONT_SIZE)
                     if touch.method_counts[shorthand] > 1:
                         cell.alignment = centre_text
                         cell.value = touch.method_counts[shorthand]
@@ -393,8 +399,9 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     # Rows
     get_row(0).height = FONT_SIZE * 6  # Title
     get_row(1).height = FONT_SIZE * 4.5  # 'made by me'
+    get_row(2).height = FONT_SIZE * 1.7  # 'made by me'
     for row in range(len(touches) + 1):
-        get_row(3 + row).height = FONT_SIZE * 1.4
+        get_row(3 + row).height = FONT_SIZE * 1.45
     # Columns
     vertical_text_column_width = 2.7
     get_col(length_col).width = 6.5
@@ -407,9 +414,9 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         sheet.column_dimensions[col_name].width = vertical_text_column_width
 
     # === BORDERS ===
-    THICK = Side(style="medium")
-    NORMAL = Side(style="thin")
-    THIN = Side(style="hair")
+    THICK = Side(style="thick")
+    NORMAL = Side(style="medium")
+    THIN = Side(style="thin", color=THIN_BORDER_COLOUR)
     THICK_BOX = Border(left=THICK, right=THICK, top=THICK, bottom=THICK)
 
     sheet.cell(top_row, info_col).border = Border(top=THICK)
@@ -458,7 +465,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
                 right=THICK if i == info_width - 1 else None,
                 bottom=bottom,
             )
-        # Methods
+        # Method Matrix
         final_col = len(method_set.methods) - 1
         for i in range(0, len(method_set.methods)):
             if i == 0:
