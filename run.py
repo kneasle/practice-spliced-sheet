@@ -157,12 +157,8 @@ class Touch:
                 f"{self.call_string} is given len {self.length} but has {len(rows)} rows"
             )
         # Count runs
-        run_regex_front = re.compile(
-            "^(1234|2345|3456|4567|5678|4321|5432|6543|7654|8765).*$"
-        )
-        run_regex_back = re.compile(
-            "^.*(1234|2345|3456|4567|5678|4321|5432|6543|7654|8765)$"
-        )
+        run_regex_front = re.compile("^(1234|2345|3456|4567|5678|4321|5432|6543|7654|8765).*$")
+        run_regex_back = re.compile("^.*(1234|2345|3456|4567|5678|4321|5432|6543|7654|8765)$")
         self.runs = 0
         for row in rows:
             if run_regex_front.match(row):
@@ -367,9 +363,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         row = top_row + 3 + idx
         # Alignment (only the `calling` column is left-aligned)
         for col in all_info_cols:
-            sheet.cell(row, col).alignment = (
-                left_text if col == calling_col else centre_text
-            )
+            sheet.cell(row, col).alignment = left_text if col == calling_col else centre_text
         # Touch info
         for col in [calling_col, calling_col + 1]:
             sheet.cell(row, col).font = Font(name="Fira Code", size=FONT_SIZE)
@@ -407,9 +401,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     get_col(runs_col).width = 5
     get_col(notes_col).width = max((len(t.notes or "") for t in touches)) * 0.95
     get_col(calling_col).width = max_len((t.call_string for t in touches)) * 1.3
-    get_col(calling_col + 1).width = (
-        max_len((t.calling_position_string for t in touches)) * 1.3
-    )
+    get_col(calling_col + 1).width = max_len((t.calling_position_string for t in touches)) * 1.3
     for method_idx in range(len(method_set.methods)):
         col_name = get_column_letter(method_col + method_idx)
         sheet.column_dimensions[col_name].width = vertical_text_column_width
