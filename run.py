@@ -10,6 +10,11 @@ from openpyxl.utils import get_column_letter
 from typing import Dict, Iterable, List, Tuple
 
 
+FOOTER_TEXT = (
+    "All compositions use near calls and are true."
+    + "  C/Y/S, E/L, B/D and M/N can always be interchanged if falseness/less music is ok."
+)
+
 BELL_NAMES = "1234567890ETABCD"
 
 STAGE = 8
@@ -266,10 +271,17 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     MATRIX_CELL_FILL = "FFCCCCCC"
     THIN_BORDER_COLOUR = "FF999999"
 
-    method_col = 1
-    info_col = 1 + len(method_set.methods)
-    top_row = 1
+    THICK = Side(style="thick")
+    NORMAL = Side(style="medium")
+    THIN = Side(style="thin", color=THIN_BORDER_COLOUR)
+    THICK_BOX = Border(left=THICK, right=THICK, top=THICK, bottom=THICK)
+
+    num_methods = len(method_set.methods)
+    methods_col = 1
+    info_col = 1 + num_methods
     info_width = 5
+    top_row = 1
+    first_touch_row = top_row + 3
 
     length_col = info_col + 0
     notes_col = info_col + 1
@@ -282,8 +294,8 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         for row in range(3 + len(touches) + 1):
             sheet.cell(top_row + row, col).font = Font(name=FONT_FAMILY, size=FONT_SIZE)
 
-    for m_idx in range(len(method_set.methods)):
-        set_col_font(method_col + m_idx)
+    for m_idx in range(num_methods):
+        set_col_font(methods_col + m_idx)
     for i_idx in range(info_width):
         set_col_font(info_col + i_idx)
 
@@ -333,7 +345,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
 
     # === METHODS ===
     for idx, shorthand in enumerate(method_set.methods):
-        column = method_col + idx
+        column = methods_col + idx
         method = method_set.methods[shorthand]
         # Determine the name
         name = " " + method.name
@@ -350,7 +362,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         cell.value = name
         cell.alignment = vertical_text
     # Groups
-    start_col = method_col
+    start_col = methods_col
     groups_row = top_row + 2
     for name, width in method_set.groups:
         sheet.merge_cells(
@@ -366,7 +378,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
 
     # === TOUCHES ===
     for idx, touch in enumerate(touches):
-        row = top_row + 3 + idx
+        row = first_touch_row + idx
         # Alignment (only the `calling` column is left-aligned)
         for col in all_info_cols:
             sheet.cell(row, col).alignment = left_text if col == calling_col else centre_text
@@ -381,7 +393,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         # Method Matrix
         for meth_idx, shorthand in enumerate(method_set.methods):
             if shorthand in touch.method_counts:
-                cell = sheet.cell(row, method_col + meth_idx)
+                cell = sheet.cell(row, methods_col + meth_idx)
                 if shorthand in touch.method_counts:
                     cell.fill = PatternFill(patternType="solid", fgColor=MATRIX_CELL_FILL)
                     cell.font = Font(name="Fira Code", size=FONT_SIZE)
@@ -389,13 +401,28 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
                         cell.alignment = centre_text
                         cell.value = touch.method_counts[shorthand]
 
+    # === FOOTER ===
+    footer_row = first_touch_row + len(touches)
+    start_col = min(info_col, methods_col)
+    # -1 to convert to an exclusive range
+    end_col = max(info_col + info_width, methods_col + num_methods) - 1
+    sheet.merge_cells(
+        start_row=footer_row,
+        start_column=start_col,
+        end_row=footer_row,
+        end_column=end_col,
+    )
+    sheet.cell(footer_row, start_col).value = FOOTER_TEXT
+    sheet.cell(footer_row, start_col).border = Border(left=THICK, top=THICK, bottom=THICK)
+    sheet.cell(footer_row, end_col).border = Border(right=THICK)
+
+    # === ROW/COLUMN SIZES ===
     def get_col(col_idx):
         return sheet.column_dimensions[get_column_letter(col_idx)]
 
     def get_row(idx):
         return sheet.row_dimensions[top_row + idx]
 
-    # === ROW/COLUMN SIZES ===
     # Rows
     get_row(0).height = FONT_SIZE * 6  # Title
     get_row(1).height = FONT_SIZE * 4.5  # 'made by me'
@@ -409,16 +436,11 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     get_col(notes_col).width = max((len(t.notes or "") for t in touches)) * 0.95
     get_col(calling_col).width = max_len((t.call_string for t in touches)) * 1.3
     get_col(calling_col + 1).width = max_len((t.calling_position_string for t in touches)) * 1.3
-    for method_idx in range(len(method_set.methods)):
-        col_name = get_column_letter(method_col + method_idx)
+    for method_idx in range(num_methods):
+        col_name = get_column_letter(methods_col + method_idx)
         sheet.column_dimensions[col_name].width = vertical_text_column_width
 
     # === BORDERS ===
-    THICK = Side(style="thick")
-    NORMAL = Side(style="medium")
-    THIN = Side(style="thin", color=THIN_BORDER_COLOUR)
-    THICK_BOX = Border(left=THICK, right=THICK, top=THICK, bottom=THICK)
-
     sheet.cell(top_row, info_col).border = Border(top=THICK)
     for i in range(2):
         sheet.cell(top_row + i, info_col + info_width - 1).border = Border(right=THICK)
@@ -426,15 +448,15 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     for col in range(info_width):
         sheet.cell(top_row + 2, info_col + col).border = THICK_BOX
     # Methods box
-    for method_idx in range(len(method_set.methods)):
-        i = method_col + method_idx
+    for method_idx in range(num_methods):
+        i = methods_col + method_idx
         if method_idx == 0:
             left = THICK
         elif method_idx in method_set.lines:
             left = NORMAL
         else:
             left = None
-        right = THICK if method_idx == len(method_set.methods) - 1 else None
+        right = THICK if method_idx == num_methods - 1 else None
         # Set the borders
         sheet.cell(top_row, i).border = Border(
             left=left,
@@ -449,7 +471,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         )
     # Touches
     for touch_idx in range(len(touches)):
-        row = top_row + 3 + touch_idx
+        row = first_touch_row + touch_idx
         # Determine what line is required under this cell
         if touch_idx == len(touches) - 1:
             bottom = THICK  # Thick border at the bottom of the box
@@ -466,15 +488,15 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
                 bottom=bottom,
             )
         # Method Matrix
-        final_col = len(method_set.methods) - 1
-        for i in range(0, len(method_set.methods)):
+        final_col = num_methods - 1
+        for i in range(0, num_methods):
             if i == 0:
                 left = THICK
             elif i in method_set.lines:
                 left = NORMAL
             else:
                 left = THIN
-            sheet.cell(row, method_col + i).border = Border(
+            sheet.cell(row, methods_col + i).border = Border(
                 left=left,
                 right=THICK if i == final_col else None,
                 bottom=bottom,
