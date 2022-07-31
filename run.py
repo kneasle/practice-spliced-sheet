@@ -146,6 +146,9 @@ class Touch:
             for match in lead_regex.finditer(call_string)
         ]
 
+        # Convert the lead sequence into a sequence of rows and a calling string
+        rows, calls, last_lead_length = gen_rows_and_calls(call_string, leads, methods)
+
         # Determine which methods are rung
         self.method_counts = {}
         for shorthand, _ in leads:
@@ -153,9 +156,19 @@ class Touch:
                 self.method_counts[shorthand] += 1
             else:
                 self.method_counts[shorthand] = 1
-
-        # Convert the lead sequence into a sequence of rows and a calling string
-        rows, calls = gen_rows_and_calls(call_string, leads, methods)
+        # The last lead must be handled differently.  If we ring less than half a lead, then that
+        # method should *only* be counted if it hasn't already been rung.  For example, both the
+        # following should have one lead of Yorkshire:
+        # - WS*LCE.BYY>     (Y is rung for 34 rows)
+        # - CSCS.B*Y>       (Y is rung for 2 rows)
+        # Basically, we want to not count a snap finish as a full lead but we *really* don't want to
+        # have a method that's actually included (even for two rows) but doesn't show up in the
+        # list.
+        last_shorthand, _ = leads[-1]
+        len_of_last_methods_lead = len(methods[last_shorthand].lead_rows)
+        if last_lead_length < len_of_last_methods_lead / 2:
+            # Finished in first half of the last lead, so reduce that method's lead count if needed
+            self.method_counts[last_shorthand] = max(1, self.method_counts[last_shorthand] - 1)
 
         # Check that the given length was correct
         if self.length != len(rows):
@@ -191,10 +204,11 @@ class Touch:
 
 def gen_rows_and_calls(
     call_string: str, leads, methods: Dict[str, Method]
-) -> Tuple[List[str], List[Tuple[str, str]]]:
+) -> Tuple[List[str], List[Tuple[str, str]], int]:
     calls = []
     rows = []
     lead_head = ROUNDS
+    last_lead_length = 0
     for method_shorthand, call_shorthand in leads:
         method = methods[method_shorthand]
         # Add the rows for this lead
@@ -210,10 +224,13 @@ def gen_rows_and_calls(
             calls.append(("s", calling_pos_at(lead_head, is_single=True)))
         else:
             raise ValueError(f"Invalid call {call_shorthand}")
+        last_lead_length = len(method.lead_rows)
     # Check for early rounds
     try:
         # Rounds always appears at the start, but snap finishes will make rounds appear again
         rounds_index = rows.index(ROUNDS, 1)
+        # Remove the rows after rounds from the last lead
+        last_lead_length -= len(rows) - rounds_index
         # Trim anything from rounds onwards
         rows = rows[:rounds_index]
     except ValueError:
@@ -222,7 +239,7 @@ def gen_rows_and_calls(
             print(f"{call_string} doesn't come round")
             assert False
 
-    return (rows, calls)
+    return (rows, calls, last_lead_length)
 
 
 def calling_pos_at(row: str, is_single: bool = False) -> str:
