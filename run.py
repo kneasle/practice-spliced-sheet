@@ -166,8 +166,12 @@ class Touch:
         # list.
         last_shorthand, _ = leads[-1]
         len_of_last_methods_lead = len(methods[last_shorthand].lead_rows)
+        # Make sure that `self.call_string` ends with `>` iff there's snap finish
+        self.call_string = self.call_string.rstrip(">")
+        if last_lead_length < len_of_last_methods_lead:
+            self.call_string += ">"
+        # Reduce the last method's count if we finished in the first half of its last lead
         if last_lead_length < len_of_last_methods_lead / 2:
-            # Finished in first half of the last lead, so reduce that method's lead count if needed
             self.method_counts[last_shorthand] = max(1, self.method_counts[last_shorthand] - 1)
 
         # Check that the given length was correct
