@@ -330,7 +330,7 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         end_row=top_row + 0,
     )
     title_cell = sheet.cell(top_row, info_col)
-    title_cell.value = "50 Lincoln Touches"
+    title_cell.value = f"{len(touches)} Lincoln Touches"
     title_cell.font = Font(name=FONT_FAMILY, size=FONT_SIZE * 4, bold=True)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
     # made by me
