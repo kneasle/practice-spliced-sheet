@@ -293,11 +293,11 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
     FONT_FAMILY = "EB Garamond"
     FONT_SIZE = 10
     MATRIX_CELL_FILL = "FFCCCCCC"
-    THIN_BORDER_COLOUR = "FF999999"
+    GREY_BORDER_COLOUR = "FF999999"
 
     THICK = Side(style="thick")
-    NORMAL = Side(style="medium")
-    THIN = Side(style="thin", color=THIN_BORDER_COLOUR)
+    NORMAL = Side(style="medium", color=GREY_BORDER_COLOUR)
+    THIN = Side(style="thin", color=GREY_BORDER_COLOUR)
     THICK_BOX = Border(left=THICK, right=THICK, top=THICK, bottom=THICK)
 
     num_methods = len(method_set.methods)
