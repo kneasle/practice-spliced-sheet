@@ -57,9 +57,11 @@ def load_methods() -> "MethodSet":
             "M": Method("Mareham", "-58-14.58-12.38-12-18.36.12-18,18"),
             "G": Method("Glasgow", "36-56.14.58-58.36-14-38.16-16.38,18"),
             # "R": Method("Carolina Reaper", "38-38.18-56-18-34-18.16-16.78,12"),
+            "P": Method("Plain Bob", "-18-18-18-18,12"),
+            "I": Method("Little Bob", "-18-14,12"),
         },
-        groups=[("Core 7", 7), ("Friends", 7)],
-        lines=[7, 11],
+        groups=[("Core 7", 7), ("Friends", 7), ("Fun", 2)],
+        lines=[7, 11, 14],
     )
 
 
