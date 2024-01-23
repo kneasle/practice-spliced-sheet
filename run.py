@@ -27,7 +27,7 @@ def main():
     method_set = load_methods()
     touches = read_touches(sys.argv[1], method_set)
     touches.sort(key=lambda touch: (touch.length, -touch.runs))
-    write_spreadsheet(method_set, touches, "Lincoln.xlsx")
+    write_spreadsheet(method_set, touches, sys.argv[2])
     print(f"Written {len(touches)} touches")
 
 
