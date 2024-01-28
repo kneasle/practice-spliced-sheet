@@ -13,7 +13,7 @@ from typing import Dict, Iterable, List, Tuple
 
 FOOTER_TEXT = (
     "All compositions use near calls and are true."
-    + "  C/Y/S, E/L, B/D and M/N can always be interchanged if falseness/less music is ok."
+    + "  C/Y/S, E/L/R and M/N can always be interchanged if falseness/less music is ok."
 )
 
 BELL_NAMES = "1234567890ETABCD"
@@ -53,9 +53,10 @@ def load_methods() -> "MethodSet":
             "A": Method("Lancashire", "58-58.14-58-36-14-58.14-14.78,12"),
             "T": Method("Ytterbium", "-38-14-1256-16-12-58.16-12.78,12"),
             # Lincoln 15
-            "D": Method("Double Coslany", "-14.58.36.14.58-18,18"),
+            # "D": Method("Double Coslany", "-14.58.36.14.58-18,18"),
             "M": Method("Mareham", "-58-14.58-12.38-12-18.36.12-18,18"),
             "G": Method("Glasgow", "36-56.14.58-58.36-14-38.16-16.38,18"),
+            "R": Method("Rook and Gaskill", "38-58.14-58-36-12-58-16-58,12"),
             # "R": Method("Carolina Reaper", "38-38.18-56-18-34-18.16-16.78,12"),
             "P": Method("Plain Bob", "-18-18-18-18,12"),
             "I": Method("Little Bob", "-18-14,12"),
@@ -436,8 +437,10 @@ def write_spreadsheet(method_set: MethodSet, touches: List[Touch], path: str):
         end_row=footer_row,
         end_column=end_col,
     )
-    sheet.cell(footer_row, start_col).value = FOOTER_TEXT
-    sheet.cell(footer_row, start_col).border = Border(left=THICK, top=THICK, bottom=THICK)
+    footer_cell = sheet.cell(footer_row, start_col);
+    footer_cell.value = FOOTER_TEXT
+    footer_cell.alignment = centre_text
+    footer_cell.border = Border(left=THICK, top=THICK, bottom=THICK)
     sheet.cell(footer_row, end_col).border = Border(right=THICK)
 
     # === ROW/COLUMN SIZES ===

@@ -1,0 +1,19 @@
+length = { min = 0, max = 100 }
+methods = [
+    "Cambridge Surprise Major",
+    "Yorkshire Surprise Major",
+    "Superlative Surprise Major",
+    "Bristol Surprise Major",
+    { shorthand = "E", title = "Lessness Surprise Major" },
+    { shorthand = "W", title = "Cornwall Surprise Major" },
+    "London Surprise Major",
+    { shorthand = "N", title = "Double Norwich Court Bob Major", count.max = 32 },
+    { shorthand = "V", title = "Deva Surprise Major" },
+    { shorthand = "A", title = "Lancashire Surprise Major" },
+    { shorthand = "T", title = "Ytterbium Surprise Major" },
+    "Mareham Delight Major",
+    "Glasgow Surprise Major",
+    { title = "Rook and Gaskill Surprise Major", count.min = 32 },
+  
+]
+method_count = { min = 0, max = 34 }
